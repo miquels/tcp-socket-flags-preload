@@ -49,21 +49,22 @@ u128 sockaddr_to_uint128(const struct sockaddr *sa) {
 }
 
 // If the socket address is ipv4-mapped ipv6, transmogrify it into plain ipv4.
-void mapped_ipv4_to_real_ipv4(struct sockaddr *sa) {
+const struct sockaddr *mapped_ipv4_to_real_ipv4(const struct sockaddr *sa, struct sockaddr_storage *buf) {
   // Check it's IPv6.
   if (sa->sa_family != AF_INET6) {
-    return;
+    return sa;
   }
   // Check it's mapped ipv4.
   u128 addr = sockaddr_to_uint128(sa);
   if ((addr & make_u128(0xFFFFFFFFFFFFFFFF, 0xFFFFFFFF00000000)) != (u128)0xFFFF00000000) {
-    return;
+    return sa;
   }
   // transmogrify.
   struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)sa;
   struct sockaddr_in sin4 = { .sin_family = AF_INET, .sin_port = sin6->sin6_port };
-  memcpy(&sin4.sin_addr.s_addr, &sin6->sin6_addr.s6_addr + 12, 4);
-  memcpy((void *)sa, (void *)&sin4, sizeof(sin4));
+  memcpy(&sin4.sin_addr.s_addr, sin6->sin6_addr.s6_addr + 12, 4);
+  memcpy(buf, &sin4, sizeof(sin4));
+  return (struct sockaddr *)buf;
 }
 
 char *trim(char *s) {

@@ -171,6 +171,11 @@ struct Config *config_match(char *call, const struct sockaddr *addr) {
   if (!config) {
     return NULL;
   }
+
+  // If it's a mapped v4 address we got, transform it into ipv4.
+  struct sockaddr_storage buf;
+  addr = mapped_ipv4_to_real_ipv4(addr, &buf);
+
   struct Config *result = NULL;
   while (config) {
     if (strcmp(config->call, call) == 0 && ipnetwork_match(config->net, addr)) {
@@ -178,6 +183,7 @@ struct Config *config_match(char *call, const struct sockaddr *addr) {
     }
     config = config->next;
   }
+
   return result;
 }
 
