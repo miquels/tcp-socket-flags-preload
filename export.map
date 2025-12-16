@@ -1,0 +1,6 @@
+{
+  global:
+    accept; accept4; connect;
+  local:
+    *;
+};
