@@ -68,14 +68,18 @@ struct IPNetwork *ipnetwork_parse(char *net) {
 
   // Return new IPNetwork.
   struct IPNetwork *n = (struct IPNetwork *)malloc(sizeof(struct IPNetwork));
-  if (result->ai_family == AF_INET) {
-    memcpy(&n->addr, result->ai_addr, sizeof(struct sockaddr_in));
+  if (n) {
+    if (result->ai_family == AF_INET) {
+      memcpy(&n->addr, result->ai_addr, sizeof(struct sockaddr_in));
+    } else {
+      memcpy(&n->addr, result->ai_addr, sizeof(struct sockaddr_in6));
+    }
+    n->masklen = masklen;
   } else {
-    memcpy(&n->addr, result->ai_addr, sizeof(struct sockaddr_in6));
+    errorf("out of memory");
   }
-  n->masklen = masklen;
 
- freeaddrinfo(result);
+  freeaddrinfo(result);
 
   return n;
 }

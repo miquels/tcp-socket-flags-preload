@@ -44,10 +44,26 @@ static char *strsep_net(char **line, char sep) {
   return NULL;
 }
 
+// Free configuration.
+static void config_free(struct Config *cfgline) {
+  while (cfgline) {
+    struct Config *next = cfgline->next;
+    free(cfgline->call);
+    free(cfgline->cong);
+    ipnetwork_free(cfgline->net);
+    free(cfgline);
+    cfgline = next;
+  }
+}
+
 // Read one config line.
 static struct Config *config_parse(char *line) {
-  char *orig_line = strdup(line);
   struct IPNetwork *ipnet = NULL;
+  char *orig_line = strdup(line);
+  if (!orig_line) {
+    errorf("out of memory");
+    return NULL;
+  }
 
   // Parse.
   char *call = trim(strsep(&line, ":"));
@@ -57,6 +73,11 @@ static struct Config *config_parse(char *line) {
   // Parse network.
   if (line) {
     ipnet = ipnetwork_parse(net);
+    if (!ipnet) {
+      free(orig_line);
+      errorf("out of memory");
+      return NULL;
+    }
   }
 
   if (
@@ -77,6 +98,13 @@ static struct Config *config_parse(char *line) {
   cfgline->net = ipnet;
   cfgline->cong = strdup(cong);
   cfgline->next = NULL;
+
+  if (!cfgline->call || !cfgline->cong) {
+    errorf("out of memory");
+    config_free(cfgline);
+    return NULL;
+  }
+
   return cfgline;
 }
 
@@ -90,6 +118,7 @@ static struct Config *config_reader(char *filename) {
 
   struct Config *config = NULL;
   struct Config **next = NULL;
+  int error = 0;
   char buf[1024];
 
   // Read file line by line.
@@ -106,23 +135,17 @@ static struct Config *config_reader(char *filename) {
         *next = c;
       }
       next = &(c->next);
+    } else {
+      error = 1;
     }
   }
   fclose(fp);
 
-  return config;
-}
-
-// Free configuration.
-static void config_free(struct Config *cfgline) {
-  while (cfgline) {
-    struct Config *next = cfgline->next;
-    free(cfgline->call);
-    free(cfgline->cong);
-    ipnetwork_free(cfgline->net);
-    free(cfgline);
-    cfgline = next;
+  if (error) {
+    config_free(config);
+    return NULL;
   }
+  return config;
 }
 
 // Get the config.
@@ -130,15 +153,22 @@ struct Config *config_get() {
   static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
   static time_t mtime = 0;
   static struct Config *config = NULL;
-  static char *envfile = NULL;
+  static char *cfgfile = NULL;
   struct stat st;
 
   pthread_mutex_lock(&mutex);
 
-  if (envfile == NULL) {
-    envfile = getenv(CFG_ENV);
+  if (!cfgfile) {
+    char *envfile = getenv(CFG_ENV);
+    if (envfile) {
+      envfile = strdup(envfile);
+      if (!envfile) {
+        errorf("out of memory");
+        goto out;
+      }
+    }
+    cfgfile = envfile ? envfile : CFG_FILE;
   }
-  char *cfgfile = envfile ? envfile : CFG_FILE;
 
   if (stat(cfgfile, &st) < 0) {
     if (mtime != -1) {
@@ -148,7 +178,7 @@ struct Config *config_get() {
     goto out;
   }
 
-  if (mtime == st.st_mtime) {
+  if (mtime == st.st_mtime && config) {
     goto out;
   }
   mtime = st.st_mtime;
