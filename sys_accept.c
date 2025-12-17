@@ -41,9 +41,9 @@ int accept(int socket, struct sockaddr *addr, socklen_t *addrlen) {
   }
 
   // call the original accept function
-  int res =  (*acceptfunc)(socket, addr, addrlen);
-  if (res != 0) {
-    return res;
+  int newsock =  (*acceptfunc)(socket, addr, addrlen);
+  if (newsock < 0) {
+    return newsock;
   }
 
   // See if it matches the config.
@@ -51,12 +51,12 @@ int accept(int socket, struct sockaddr *addr, socklen_t *addrlen) {
   if (config) {
     // Set congestion protocol.
     int len = strlen(config->cong);
-    if (setsockopt(socket, IPPROTO_TCP, TCP_CONGESTION, config->cong, len) < 0) {
+    if (setsockopt(newsock, IPPROTO_TCP, TCP_CONGESTION, config->cong, len) < 0) {
       errorf("accept: could not set congestion control to %s", config->cong);
     }
   }
 
-  return 0;
+  return newsock;
 }
 
 int accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags) {
@@ -85,8 +85,8 @@ int accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags) {
   }
 
   // call the original accept4 function
-  int res =  (*acceptfunc)(socket, addr, addrlen, flags);
-  if (res != 0) {
+  int newsock =  (*acceptfunc)(socket, addr, addrlen, flags);
+  if (newsock < 0) {
     return res;
   }
 
@@ -95,10 +95,10 @@ int accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags) {
   if (config) {
     // Set congestion protocol.
     int len = strlen(config->cong);
-    if (setsockopt(socket, IPPROTO_TCP, TCP_CONGESTION, config->cong, len) < 0) {
+    if (setsockopt(newsock, IPPROTO_TCP, TCP_CONGESTION, config->cong, len) < 0) {
       errorf("accept4: could not set congestion control to %s", config->cong);
     }
   }
 
-  return 0;
+  return newsock;
 }

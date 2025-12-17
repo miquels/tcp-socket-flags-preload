@@ -12,14 +12,19 @@ For accept, if the accept succeeds, it checks if the remote address matches any 
 On a match, the settings from the configuration file are applied to the socket. Right now, the only thing you can set is the TCP congestion control algorithm, `reno`, `cubic` or `bbr`.
 
 ## Example config file.
-This config file enables BBR on all destinations, with two exceptions where it's cubic.
+This config file enables BBR for all peers, with two exceptions where it's cubic.
 
 ```
-# config file.
+# outgoing.
 connect: 0.0.0.0/0: bbr
 connect: [::]/0: bbr
 connect: 10.200.0.0/16: cubic
 connect: [2001:980:400::]/48: cubic
+# incoming.
+accept: 0.0.0.0/0: bbr
+accept: [::]/0: bbr
+accept: 10.200.0.0/16: cubic
+accept: [2001:980:400::]/48: cubic
 ```
 
 The default config file is `/etc/tcp_socket_flags.cfg`, but it can be overridden by an environment variable.
