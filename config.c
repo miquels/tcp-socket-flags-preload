@@ -108,6 +108,7 @@ static struct Config *config_reader(char *filename) {
       next = &(c->next);
     }
   }
+  fclose(fp);
 
   return config;
 }
@@ -141,7 +142,7 @@ struct Config *config_get() {
 
   if (stat(cfgfile, &st) < 0) {
     if (mtime != -1) {
-      errorf("%s: %s", CFG_FILE, strerror(errno));
+      errorf("%s: %s", cfgfile, strerror(errno));
       mtime = -1;
     }
     goto out;

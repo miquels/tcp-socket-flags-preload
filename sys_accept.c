@@ -87,7 +87,7 @@ int accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags) {
   // call the original accept4 function
   int newsock =  (*acceptfunc)(socket, addr, addrlen, flags);
   if (newsock < 0) {
-    return res;
+    return newsock;
   }
 
   // See if it matches the config.

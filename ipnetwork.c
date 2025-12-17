@@ -61,6 +61,7 @@ struct IPNetwork *ipnetwork_parse(char *net) {
 	*slash = '/';
         errorf("ipnetwork: %s: invalid mask\n", net);
       }
+      freeaddrinfo(result);
       return NULL;
     }
   }
@@ -73,6 +74,9 @@ struct IPNetwork *ipnetwork_parse(char *net) {
     memcpy(&n->addr, result->ai_addr, sizeof(struct sockaddr_in6));
   }
   n->masklen = masklen;
+
+ freeaddrinfo(result);
+
   return n;
 }
 
